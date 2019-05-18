@@ -469,7 +469,7 @@ void update_glycemia() {
     
           // calculate sensor time difference
           int sensorDifSec=0;
-          if(!getLocalTime(&timeinfo)){
+          if(!getLocalTime(&timeinfo)){ // aaa - have to look at it later, sometime it fails here
             sensorDifSec=24*60*60; // too much
           } else {
             Serial.print("Local time: "); Serial.print(timeinfo.tm_hour); Serial.print(":"); Serial.print(timeinfo.tm_min); Serial.print(":"); Serial.print(timeinfo.tm_sec); Serial.print(" DST "); Serial.println(timeinfo.tm_isdst);
@@ -754,13 +754,17 @@ void loop(){
       }
     }
     // Serial.print("led_alert="); Serial.print(led_alert); Serial.print(", millis()="); Serial.print(millis()); Serial.print(", msCountAlert="); Serial.println(msCountAlert);
-    if(led_alert && (millis()-msCountAlert>500)) {
-      if(digitalRead(M5_LED)==LOW) {
-        digitalWrite(M5_LED, HIGH);  
+    if( millis()-msCountAlert>500 ) {
+      if(led_alert) {
+        if(digitalRead(M5_LED)==LOW) {
+          digitalWrite(M5_LED, HIGH);  
+        } else {
+          digitalWrite(M5_LED, LOW);  
+        }
+        // Serial.println(digitalRead(M5_LED));
       } else {
-        digitalWrite(M5_LED, LOW);  
+        digitalWrite(M5_LED, HIGH);
       }
-      // Serial.println(digitalRead(M5_LED));
       msCountAlert = millis();
     }
   }
