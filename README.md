@@ -25,6 +25,6 @@ The main button changes the backlight in the 3 steps defined in configuration so
 
 ### Donations
 
-If you find my project useful, you can donate me few bucks for further development or buy me a glass of wine uüeÈ
+If you find my project useful, you can donate me few bucks for further development or buy me a glass of wine
 
 https://paypal.me/8bity
