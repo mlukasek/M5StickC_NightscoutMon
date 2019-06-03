@@ -1,5 +1,7 @@
 #include "M5StickC_NSconfig.h"
 
+// here write YOUR NIGHTSCOUT configuration data (do not edit M5StickC_NSconfig.h file)
+
 void readConfiguration(tConfig *cfg) {
   strlcpy(cfg->url, "user.herokuapp.com", 64);
   cfg->bootPic[0]=0;
@@ -28,8 +30,8 @@ void readConfiguration(tConfig *cfg) {
   cfg->brightness1 = 10; // default display brightness (0-15, but reasonable values are 7-15)
   cfg->brightness2 = 15; // the second level of display brightness (0-15, but reasonable values are 7-15)
   cfg->brightness3 = 8; // the third level of display brightness (0-15, but reasonable values are 7-15)
-  strlcpy(cfg->wlan1ssid, "wlan1ssid",32);
-  strlcpy(cfg->wlan1pass, "wlan1pass", 32);
+  strlcpy(cfg->wlan1ssid, "Skr1474",32);
+  strlcpy(cfg->wlan1pass, "dddddddd", 32);
   strlcpy(cfg->wlan2ssid, "wlan2ssid", 32);
   strlcpy(cfg->wlan2pass, "wlan2pass", 32);
   strlcpy(cfg->wlan3ssid, "wlan3ssid", 32);

@@ -90,28 +90,6 @@ void printLocalTime() {
   M5.Lcd.println(&localTimeInfo, "%A, %B %d %Y %H:%M:%S");
 }
 
-void sndAlarm() {
-    for(int j=0; j<6; j++) {
-      /*
-      if( cfg.dev_mode )
-        // play_tone(660, 400, 1);
-      else
-        // play_tone(660, 400, 20); */
-      delay(200);
-    }
-}
-
-void sndWarning() {
-  for(int j=0; j<3; j++) {
-    /*
-    if( cfg.dev_mode )
-      // play_tone(3000, 100, 1);
-    else
-      // play_tone(3000, 100, 100);*/
-    delay(300);
-  }
-}
-
 int tmpvol = 1;
 void buttons_test() {
   if(digitalRead(M5_BUTTON_HOME) == LOW){
@@ -203,7 +181,7 @@ void setup() {
   Serial.print("Free Heap = "); Serial.println(ESP.getFreeHeap());
 
   readConfiguration(&cfg);
-  // cfg.snd_warning = 5.5;
+  // cfg.snd_warning = 6.5;
   // cfg.snd_alarm = 4.5;
   // cfg.snd_warning_high = 9;
   // cfg.snd_alarm_high = 10;
@@ -278,9 +256,14 @@ void update_glycemia() {
     M5.Lcd.fillScreen(BLACK);
   } else {
     // M5.Lcd.fillRect(230, 110, 90, 100, TFT_BLACK);
-    M5.Lcd.fillRect(96, 16, 64, 48, TFT_BLACK);
+    // M5.Lcd.fillRect(96, 16, 64, 48, TFT_BLACK);
     // M5.Lcd.fillScreen(BLACK);
   }
+  
+  // if LED alert then light LED always during Nightscout query
+  if(led_alert)
+    digitalWrite(M5_LED, LOW);  
+ 
   M5.Lcd.setTextSize(1);
   M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
   M5.Lcd.drawBitmap(96, 16, 64, 48, (uint16_t *)WiFi_symbol);
@@ -429,13 +412,13 @@ void update_glycemia() {
               } else {
                 JsonObject iob = propdoc["iob"];
                 float iob_iob = iob["iob"]; // 0
-                const char* iob_display = iob["display"]; // "0"
-                const char* iob_displayLine = iob["displayLine"]; // "IOB: 0U"
+                const char* iob_display = iob["display"] | "N/A"; // "0"
+                const char* iob_displayLine = iob["displayLine"] | "IOB: N/A"; // "IOB: 0U"
                 
                 JsonObject cob = propdoc["cob"];
                 float cob_cob = cob["cob"]; // 0
-                int cob_display = cob["display"]; // 0
-                const char* cob_displayLine = cob["displayLine"]; // "COB: 0g"
+                const char* cob_display = cob["display"] | "N/A"; // 0
+                const char* cob_displayLine = cob["displayLine"] | "COB: N/A"; // "COB: 0g"
                 
                 JsonObject delta = propdoc["delta"];
                 int delta_absolute = delta["absolute"]; // -4
@@ -444,8 +427,8 @@ void update_glycemia() {
                 int delta_mean5MinsAgo = delta["mean5MinsAgo"]; // 69
                 int delta_mgdl = delta["mgdl"]; // -4
                 float delta_scaled = delta["scaled"]; // -0.2
-                const char* delta_display = delta["display"]; // "-0.2"
-                // M5.Lcd.fillRect(96,0,64,12,TFT_BLACK);
+                const char* delta_display = delta["display"] | "N/A"; // "-0.2"
+                M5.Lcd.fillRect(80,0,64,17,TFT_BLACK);
                 M5.Lcd.setTextSize(1);
                 M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
                 M5.Lcd.drawString(delta_display, 115, 0, 2);
@@ -609,13 +592,13 @@ void update_glycemia() {
             // red alarm state
             // M5.Lcd.fillRect(110, 220, 100, 20, TFT_RED);
             Serial.println("ALARM LOW");
-            led_alert = 1;
+            led_alert = 3;
             // M5.Lcd.fillRect(0, 220, 320, 20, TFT_RED);
             // M5.Lcd.setTextColor(TFT_BLACK, TFT_RED);
             // int stw=M5.Lcd.textWidth(tmpStr);
             // M5.Lcd.drawString(tmpStr, 159-stw/2, 220, 2);
             if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeDifSec==cfg.snooze_timeout*60) ) {
-                sndAlarm();
+                // sndAlarm();
                 lastAlarmTime = mktime(&timeinfo);
             }
           } else {
@@ -629,7 +612,7 @@ void update_glycemia() {
               // int stw=M5.Lcd.textWidth(tmpStr);
               // M5.Lcd.drawString(tmpStr, 159-stw/2, 220, 2);
               if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeDifSec==cfg.snooze_timeout*60) ) {
-                sndWarning();
+                // sndWarning();
                 lastAlarmTime = mktime(&timeinfo);
               }
             } else {
@@ -637,13 +620,13 @@ void update_glycemia() {
                 // red alarm state
                 // M5.Lcd.fillRect(110, 220, 100, 20, TFT_RED);
                 Serial.println("ALARM HIGH");
-                led_alert = 1;
+                led_alert = 3;
                 // M5.Lcd.fillRect(0, 220, 320, 20, TFT_RED);
                 // M5.Lcd.setTextColor(TFT_BLACK, TFT_RED);
                 // int stw=M5.Lcd.textWidth(tmpStr);
                 // M5.Lcd.drawString(tmpStr, 159-stw/2, 220, 2);
                 if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeDifSec==cfg.snooze_timeout*60) ) {
-                    sndAlarm();
+                    // sndAlarm();
                     lastAlarmTime = mktime(&timeinfo);
                 }
               } else {
@@ -657,7 +640,7 @@ void update_glycemia() {
                   // int stw=M5.Lcd.textWidth(tmpStr);
                   // M5.Lcd.drawString(tmpStr, 159-stw/2, 220, 2);
                   if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeDifSec==cfg.snooze_timeout*60) ) {
-                    sndWarning();
+                    // sndWarning();
                     lastAlarmTime = mktime(&timeinfo);
                   }
                 } else {
@@ -671,7 +654,7 @@ void update_glycemia() {
                     // int stw=M5.Lcd.textWidth(tmpStr);
                     // M5.Lcd.drawString(tmpStr, 159-stw/2, 220, 2);
                     if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeDifSec==cfg.snooze_timeout*60) ) {
-                      sndWarning();
+                      // sndWarning();
                       lastAlarmTime = mktime(&timeinfo);
                     }
                   } else {
@@ -754,18 +737,18 @@ void loop(){
       }
     }
     // Serial.print("led_alert="); Serial.print(led_alert); Serial.print(", millis()="); Serial.print(millis()); Serial.print(", msCountAlert="); Serial.println(msCountAlert);
-    if( millis()-msCountAlert>500 ) {
-      if(led_alert) {
+    if(led_alert) {
+      if( millis()-msCountAlert>(500/led_alert) ) {
         if(digitalRead(M5_LED)==LOW) {
           digitalWrite(M5_LED, HIGH);  
         } else {
           digitalWrite(M5_LED, LOW);  
         }
         // Serial.println(digitalRead(M5_LED));
-      } else {
-        digitalWrite(M5_LED, HIGH);
+        msCountAlert = millis();
       }
-      msCountAlert = millis();
+    } else {
+      digitalWrite(M5_LED, HIGH);
     }
   }
 
