@@ -28,6 +28,11 @@
 #include <ArduinoJson.h>
 #include "M5StickC_NSconfig.h"
 
+const int servo_pin = 26;
+int freq = 50;
+int ledChannel = 0;
+int resolution = 10;
+
 tConfig cfg;
 
 extern const unsigned char WiFi_symbol[];
@@ -91,12 +96,54 @@ void printLocalTime() {
 }
 
 int tmpvol = 1;
+
+void sndAlarm() {
+  for(int j=0; j<6; j++) {
+    if( cfg.dev_mode ) {
+      // play_tone(660, 400, 1);
+      digitalWrite(M5_LED, LOW);  
+      ledcWriteTone(ledChannel, 660);
+      delay(1);
+      digitalWrite(M5_LED, HIGH);  
+      ledcWriteTone(ledChannel, 0);
+    } else {
+      // play_tone(660, 400, cfg.alarm_volume);
+      digitalWrite(M5_LED, LOW);  
+      ledcWriteTone(ledChannel, 660);
+      delay(400);
+      digitalWrite(M5_LED, HIGH);  
+      ledcWriteTone(ledChannel, 0);
+    }
+    delay(200);
+  }
+}
+
+void sndWarning() {
+  for(int j=0; j<3; j++) {
+    if( cfg.dev_mode ) {
+      // play_tone(3000, 100, 1);
+      digitalWrite(M5_LED, LOW);  
+      ledcWriteTone(ledChannel, 3000);
+      delay(1);
+      digitalWrite(M5_LED, HIGH);  
+      ledcWriteTone(ledChannel, 0);
+    } else {
+      // play_tone(3000, 100, cfg.warning_volume);
+      digitalWrite(M5_LED, LOW);  
+      ledcWriteTone(ledChannel, 3000);
+      delay(100);
+      digitalWrite(M5_LED, HIGH);  
+      ledcWriteTone(ledChannel, 0);
+    }
+    delay(300);
+  }
+}
 void buttons_test() {
   if(digitalRead(M5_BUTTON_HOME) == LOW){
     // M5.Lcd.printf("A");
     Serial.printf("A");
     // play_tone(1000, 10, 1);
-    // sndAlarm();
+    sndAlarm();
     Serial.print("Change brightness from "); Serial.print(lcdBrightness);
     if(lcdBrightness==cfg.brightness1) 
       lcdBrightness = cfg.brightness2;
@@ -212,6 +259,12 @@ void setup() {
   M5.Axp.ScreenBreath(lcdBrightness);
   M5.Lcd.fillScreen(TFT_BLACK);
 
+  ledcSetup(ledChannel, freq, resolution);
+  ledcAttachPin(servo_pin, ledChannel);
+  ledcWrite(ledChannel, 256); //0°
+  ledcWriteTone(ledChannel, 0);
+  digitalWrite(M5_LED, HIGH);
+        
   // test file with time stamps
   msCountLog = millis()-6000;
    
@@ -434,7 +487,7 @@ void update_glycemia() {
                 M5.Lcd.drawString(delta_display, 115, 0, 2);
       
                 if(cfg.show_COB_IOB) {
-                  M5.Lcd.fillRect(0,70,96,10,TFT_BLACK);
+                  M5.Lcd.fillRect(0,70,160,10,TFT_BLACK);
                   if(iob_iob>0)
                     M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
                   else
@@ -587,7 +640,7 @@ void update_glycemia() {
           }
           M5.Lcd.setTextSize(1);
           // M5.Lcd.setFreeFont(FSSB12);
-          // Serial.print("sensSgv="); Serial.print(sensSgv); Serial.print(", cfg.snd_alarm="); Serial.println(cfg.snd_alarm); 
+          Serial.print("sensSgv="); Serial.print(sensSgv); Serial.print(", cfg.snd_alarm="); Serial.println(cfg.snd_alarm); 
           if((sensSgv<=cfg.snd_alarm) && (sensSgv>=0.1)) {
             // red alarm state
             // M5.Lcd.fillRect(110, 220, 100, 20, TFT_RED);
@@ -598,7 +651,7 @@ void update_glycemia() {
             // int stw=M5.Lcd.textWidth(tmpStr);
             // M5.Lcd.drawString(tmpStr, 159-stw/2, 220, 2);
             if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeDifSec==cfg.snooze_timeout*60) ) {
-                // sndAlarm();
+                sndAlarm();
                 lastAlarmTime = mktime(&timeinfo);
             }
           } else {
@@ -612,7 +665,7 @@ void update_glycemia() {
               // int stw=M5.Lcd.textWidth(tmpStr);
               // M5.Lcd.drawString(tmpStr, 159-stw/2, 220, 2);
               if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeDifSec==cfg.snooze_timeout*60) ) {
-                // sndWarning();
+                sndWarning();
                 lastAlarmTime = mktime(&timeinfo);
               }
             } else {
@@ -626,7 +679,7 @@ void update_glycemia() {
                 // int stw=M5.Lcd.textWidth(tmpStr);
                 // M5.Lcd.drawString(tmpStr, 159-stw/2, 220, 2);
                 if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeDifSec==cfg.snooze_timeout*60) ) {
-                    // sndAlarm();
+                    sndAlarm();
                     lastAlarmTime = mktime(&timeinfo);
                 }
               } else {
@@ -640,7 +693,7 @@ void update_glycemia() {
                   // int stw=M5.Lcd.textWidth(tmpStr);
                   // M5.Lcd.drawString(tmpStr, 159-stw/2, 220, 2);
                   if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeDifSec==cfg.snooze_timeout*60) ) {
-                    // sndWarning();
+                    sndWarning();
                     lastAlarmTime = mktime(&timeinfo);
                   }
                 } else {
@@ -654,7 +707,7 @@ void update_glycemia() {
                     // int stw=M5.Lcd.textWidth(tmpStr);
                     // M5.Lcd.drawString(tmpStr, 159-stw/2, 220, 2);
                     if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeDifSec==cfg.snooze_timeout*60) ) {
-                      // sndWarning();
+                      sndWarning();
                       lastAlarmTime = mktime(&timeinfo);
                     }
                   } else {
@@ -741,14 +794,17 @@ void loop(){
       if( millis()-msCountAlert>(500/led_alert) ) {
         if(digitalRead(M5_LED)==LOW) {
           digitalWrite(M5_LED, HIGH);  
+          // ledcWriteTone(ledChannel, 0);
         } else {
           digitalWrite(M5_LED, LOW);  
+          // ledcWriteTone(ledChannel, 1000);
         }
         // Serial.println(digitalRead(M5_LED));
         msCountAlert = millis();
       }
     } else {
       digitalWrite(M5_LED, HIGH);
+      // ledcWriteTone(ledChannel, 0);
     }
   }
 
