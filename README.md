@@ -11,8 +11,8 @@
 ### Revisions:
 
 #### *** 7 Sep 2019 ***
-JSON query update for Ascensia Diabetes Care Bluetooth Glucose Meter
-Small changes in SPK HAT speaker routines.
+JSON query update for Ascensia Diabetes Care Bluetooth Glucose Meter.  
+Small changes in SPK HAT speaker routines.  
 Removed forgotten alarm test from main button, so it now changes the brightness only, as supposed to do.
 
 #### *** 16 Jul 2019 *** 
