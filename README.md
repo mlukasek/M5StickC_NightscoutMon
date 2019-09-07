@@ -10,6 +10,15 @@
 
 ### Revisions:
 
+#### *** 7 Sep 2019 ***
+JSON query update for Ascensia Diabetes Care Bluetooth Glucose Meter and small changes in SPK HAT speaker routines.
+
+#### *** 16 Jul 2019 *** 
+Added support for M5StickC Speaker Hat (SPK, PAM8303).
+
+#### *** 3 Jun 2019 ***
+Alarm/warnign LED frequency changed. 
+
 #### *** 18 May 2019 ***
 First test version. Need changes in M5StickC library. IMU must be changed or removed (not needed).<br/><br/>
 
