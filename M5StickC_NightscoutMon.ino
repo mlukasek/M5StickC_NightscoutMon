@@ -144,7 +144,7 @@ void buttons_test() {
     // M5.Lcd.printf("A");
     Serial.printf("A");
     // play_tone(1000, 10, 1);
-    sndAlarm();
+    // sndAlarm();
     Serial.print("Change brightness from "); Serial.print(lcdBrightness);
     if(lcdBrightness==cfg.brightness1) 
       lcdBrightness = cfg.brightness2;
