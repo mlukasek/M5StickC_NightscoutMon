@@ -28,10 +28,8 @@
 #include <ArduinoJson.h>
 #include "M5StickC_NSconfig.h"
 
-const int servo_pin = 26;
-int freq = 50;
-int ledChannel = 0;
-int resolution = 10;
+const int SPK_pin = 26;
+int spkChannel = 0;
 
 tConfig cfg;
 
@@ -102,20 +100,21 @@ void sndAlarm() {
     if( cfg.dev_mode ) {
       // play_tone(660, 400, 1);
       digitalWrite(M5_LED, LOW);  
-      ledcWriteTone(ledChannel, 660);
+      ledcWriteTone(spkChannel, 660);
       delay(1);
       digitalWrite(M5_LED, HIGH);  
-      ledcWriteTone(ledChannel, 0);
+      ledcWriteTone(spkChannel, 0);
     } else {
       // play_tone(660, 400, cfg.alarm_volume);
       digitalWrite(M5_LED, LOW);  
-      ledcWriteTone(ledChannel, 660);
+      ledcWriteTone(spkChannel, 660);
       delay(400);
       digitalWrite(M5_LED, HIGH);  
-      ledcWriteTone(ledChannel, 0);
+      ledcWriteTone(spkChannel, 0);
     }
     delay(200);
   }
+  CLEAR_PERI_REG_MASK(RTC_IO_PAD_DAC1_REG, RTC_IO_PDAC1_XPD_DAC | RTC_IO_PDAC1_DAC_XPD_FORCE);
 }
 
 void sndWarning() {
@@ -123,21 +122,23 @@ void sndWarning() {
     if( cfg.dev_mode ) {
       // play_tone(3000, 100, 1);
       digitalWrite(M5_LED, LOW);  
-      ledcWriteTone(ledChannel, 3000);
+      ledcWriteTone(spkChannel, 3000);
       delay(1);
       digitalWrite(M5_LED, HIGH);  
-      ledcWriteTone(ledChannel, 0);
+      ledcWriteTone(spkChannel, 0);
     } else {
       // play_tone(3000, 100, cfg.warning_volume);
       digitalWrite(M5_LED, LOW);  
-      ledcWriteTone(ledChannel, 3000);
+      ledcWriteTone(spkChannel, 3000);
       delay(100);
       digitalWrite(M5_LED, HIGH);  
-      ledcWriteTone(ledChannel, 0);
+      ledcWriteTone(spkChannel, 0);
     }
     delay(300);
   }
+  CLEAR_PERI_REG_MASK(RTC_IO_PAD_DAC1_REG, RTC_IO_PDAC1_XPD_DAC | RTC_IO_PDAC1_DAC_XPD_FORCE);
 }
+
 void buttons_test() {
   if(digitalRead(M5_BUTTON_HOME) == LOW){
     // M5.Lcd.printf("A");
@@ -227,6 +228,15 @@ void setup() {
 
   Serial.print("Free Heap = "); Serial.println(ESP.getFreeHeap());
 
+  //M5.Speaker.mute();
+  ledcSetup(spkChannel, 50, 10); // channel, freq, resolution
+  ledcAttachPin(SPK_pin, spkChannel);
+  ledcWrite(spkChannel, 256);
+  ledcWriteTone(spkChannel, 0);
+  CLEAR_PERI_REG_MASK(RTC_IO_PAD_DAC1_REG, RTC_IO_PDAC1_XPD_DAC | RTC_IO_PDAC1_DAC_XPD_FORCE);
+  digitalWrite(M5_LED, HIGH);
+  yield();
+
   readConfiguration(&cfg);
   // cfg.snd_warning = 6.5;
   // cfg.snd_alarm = 4.5;
@@ -237,7 +247,6 @@ void setup() {
   // cfg.brightness1 = 0;
 
   startupLogo();
-  //M5.Speaker.mute();
   yield();
 
   /*
@@ -259,12 +268,6 @@ void setup() {
   M5.Axp.ScreenBreath(lcdBrightness);
   M5.Lcd.fillScreen(TFT_BLACK);
 
-  ledcSetup(ledChannel, freq, resolution);
-  ledcAttachPin(servo_pin, ledChannel);
-  ledcWrite(ledChannel, 256); //0°
-  ledcWriteTone(ledChannel, 0);
-  digitalWrite(M5_LED, HIGH);
-        
   // test file with time stamps
   msCountLog = millis()-6000;
    
@@ -347,14 +350,27 @@ void update_glycemia() {
       if(httpCode == HTTP_CODE_OK) {
         String json = http.getString();
         wasError = 0;
+        // remove any non text characters (just for sure)
+        for(int i=0; i<json.length(); i++) {
+          // Serial.print(json.charAt(i), DEC); Serial.print(" = "); Serial.println(json.charAt(i));
+          if(json.charAt(i)<32 /* || json.charAt(i)=='\\' */) {
+            json.setCharAt(i, 32);
+          }
+        }
+        // json.replace("\\n"," ");
+        // invalid Unicode character defined by Ascensia Diabetes Care Bluetooth Glucose Meter
+        // ArduinoJSON does not accept any unicode surrogate pairs like \u0032 or \u0000
+        json.replace("\\u0000"," ");
         // Serial.println(json);
         // const size_t capacity = JSON_ARRAY_SIZE(10) + 10*JSON_OBJECT_SIZE(19) + 3840;
         // Serial.print("JSON size needed= "); Serial.print(capacity); 
         Serial.print("Free Heap = "); Serial.println(ESP.getFreeHeap());
-        auto JSONerr = deserializeJson(JSONdoc, json);
+        DeserializationError JSONerr = deserializeJson(JSONdoc, json);
         if (JSONerr) {   //Check for errors in parsing
           Serial.println("JSON parsing failed");
+          Serial.print("DeserializationError = "); Serial.println(JSONerr.c_str());
           M5.Lcd.drawString("JSON parsing failed", 0, 0, 2);
+          M5.Lcd.drawString(JSONerr.c_str(), 0, 16, 2);
           wasError = 1;
         } else {
           char sensDev[64];
@@ -453,11 +469,23 @@ void update_glycemia() {
             if(httpCode == HTTP_CODE_OK) {
               // const char* propjson = "{\"iob\":{\"iob\":0,\"activity\":0,\"source\":\"OpenAPS\",\"device\":\"openaps://Spike iPhone 8 Plus\",\"mills\":1557613521000,\"display\":\"0\",\"displayLine\":\"IOB: 0U\"},\"cob\":{\"cob\":0,\"source\":\"OpenAPS\",\"device\":\"openaps://Spike iPhone 8 Plus\",\"mills\":1557613521000,\"treatmentCOB\":{\"decayedBy\":\"2019-05-11T23:05:00.000Z\",\"isDecaying\":0,\"carbs_hr\":20,\"rawCarbImpact\":0,\"cob\":7,\"lastCarbs\":{\"_id\":\"5cd74c26156712edb4b32455\",\"enteredBy\":\"Martin\",\"eventType\":\"Carb Correction\",\"reason\":\"\",\"carbs\":7,\"duration\":0,\"created_at\":\"2019-05-11T22:24:00.000Z\",\"mills\":1557613440000,\"mgdl\":67}},\"display\":0,\"displayLine\":\"COB: 0g\"},\"delta\":{\"absolute\":-4,\"elapsedMins\":4.999483333333333,\"interpolated\":false,\"mean5MinsAgo\":69,\"mgdl\":-4,\"scaled\":-0.2,\"display\":\"-0.2\",\"previous\":{\"mean\":69,\"last\":69,\"mills\":1557613221946,\"sgvs\":[{\"mgdl\":69,\"mills\":1557613221946,\"device\":\"MIAOMIAO\",\"direction\":\"Flat\",\"filtered\":92588,\"unfiltered\":92588,\"noise\":1,\"rssi\":100}]}}}";
               String propjson = http.getString();
+              // remove any non text characters (just for sure)
+              for(int i=0; i<propjson.length(); i++) {
+                // Serial.print(propjson.charAt(i), DEC); Serial.print(" = "); Serial.println(propjson.charAt(i));
+                if(propjson.charAt(i)<32 /* || propjson.charAt(i)=='\\' */) {
+                  propjson.setCharAt(i, 32);
+                }
+              }
+              // propjson.replace("\\n"," ");
+              // invalid Unicode character defined by Ascensia Diabetes Care Bluetooth Glucose Meter
+              // ArduinoJSON does not accept any unicode surrogate pairs like \u0032 or \u0000
+              propjson.replace("\\u0000"," ");
               const size_t propcapacity = JSON_ARRAY_SIZE(2) + JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(4) + JSON_OBJECT_SIZE(6) + 2*JSON_OBJECT_SIZE(7) + 4*JSON_OBJECT_SIZE(8) + 770 + 1000;
               DynamicJsonDocument propdoc(propcapacity);
-              auto propJSONerr = deserializeJson(propdoc, propjson);
+              DeserializationError propJSONerr = deserializeJson(propdoc, propjson);
               if(propJSONerr) {
                 Serial.println("Properties JSON parsing failed");
+                Serial.print("DeserializationError = "); Serial.println(JSONerr.c_str());
                 M5.Lcd.fillRect(0,24,69,23,TFT_BLACK);
                 M5.Lcd.setTextColor(TFT_YELLOW, TFT_BLACK);
                 M5.Lcd.setTextSize(1);
@@ -794,17 +822,17 @@ void loop(){
       if( millis()-msCountAlert>(500/led_alert) ) {
         if(digitalRead(M5_LED)==LOW) {
           digitalWrite(M5_LED, HIGH);  
-          // ledcWriteTone(ledChannel, 0);
+          // ledcWriteTone(spkChannel, 0);
         } else {
           digitalWrite(M5_LED, LOW);  
-          // ledcWriteTone(ledChannel, 1000);
+          // ledcWriteTone(spkChannel, 1000);
         }
         // Serial.println(digitalRead(M5_LED));
         msCountAlert = millis();
       }
     } else {
       digitalWrite(M5_LED, HIGH);
-      // ledcWriteTone(ledChannel, 0);
+      // ledcWriteTone(spkChannel, 0);
     }
   }
 
