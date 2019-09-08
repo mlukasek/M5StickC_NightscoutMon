@@ -16,6 +16,8 @@
     This software uses some 3rd party libraries:
     IniFile by Steve Marple <stevemarple@googlemail.com> (GNU LGPL v2.1)
     ArduinoJson by Benoit BLANCHON (MIT License) 
+    Additions to the code:
+    Sulka Haro (Nightscout API queries help)
 */
 
 #include <M5StickC.h>
@@ -322,6 +324,7 @@ void update_glycemia() {
  
   M5.Lcd.setTextSize(1);
   M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Lcd.fillRect(96, 16, 64, 54, TFT_BLACK);
   M5.Lcd.drawBitmap(96, 16, 64, 48, (uint16_t *)WiFi_symbol);
   // uint16_t maxWidth, uint16_t maxHeight, uint16_t offX, uint16_t offY, jpeg_div_t scale);
   if((WiFiMulti.run() == WL_CONNECTED)) {
@@ -333,7 +336,7 @@ void update_glycemia() {
     char NSurl[128];
     strcpy(NSurl,"https://");
     strcat(NSurl,cfg.url);
-    strcat(NSurl,"/api/v1/entries.json");
+    strcat(NSurl,"/api/v1/entries.json?find[type][$eq]=sgv"); // "/api/v1/entries.json"
     // more info at /api/v2/properties
     http.begin(NSurl); //HTTP
     
