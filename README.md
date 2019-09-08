@@ -10,6 +10,10 @@
 
 ### Revisions:
 
+#### *** 8 Sep 2019 ***
+Query for only the SGV records (Sulka Haro).  
+Better display cleaning after WiFi symbol display.
+
 #### *** 7 Sep 2019 ***
 JSON query update for Ascensia Diabetes Care Bluetooth Glucose Meter.  
 Small changes in SPK HAT speaker routines.  
