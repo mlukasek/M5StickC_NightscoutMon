@@ -8,6 +8,8 @@
 ###### This software uses some 3rd party libraries:<br/>IniFile by Steve Marple <stevemarple@googlemail.com> (GNU LGPL v2.1)<br/>ArduinoJson by Benoit BLANCHON (MIT License)
 <br/>
 
+<img width="320" src="https://raw.githubusercontent.com/mlukasek/M5StickC_NightscoutMon/master/images/M5StickC_Nightscout_w-speaker.jpg">&nbsp;&nbsp;<img width="320" src="https://raw.githubusercontent.com/mlukasek/M5StickC_NightscoutMon/master/images/M5StickC_Nightscout_monitor_watch.jpg">
+
 ### Revisions:
 
 #### *** 8 Sep 2019 ***
