@@ -12,6 +12,7 @@ struct tConfig {
   int timeZone = 3600; // time zone offset in hours, must be corrected for internatinal use and DST
   int dst = 3600; // DST time offset in hours, must be corrected for internatinal use and DST
   int show_mgdl = 0; // 1 = display mg/DL, 0 = diplay mmol/L
+  int sgv_only = 0; // 1 = filter only SGV values from Nightscout, 0 = read everything (default)  
   int show_current_time = 0;
   int show_COB_IOB = 0;
   int snooze_timeout = 30; // timeout to snooze alarm in minutes
@@ -32,11 +33,11 @@ struct tConfig {
   uint8_t brightness1, brightness2, brightness3;
   int dev_mode = 0; // developer mode, do not use, does strange things and changes often ;-)
   char wlan1ssid[32];
-  char wlan1pass[32];
+  char wlan1pass[64];
   char wlan2ssid[32];
-  char wlan2pass[32];
+  char wlan2pass[64];
   char wlan3ssid[32];
-  char wlan3pass[32];
+  char wlan3pass[64];
 } ;
 
 void readConfiguration(tConfig *cfg);

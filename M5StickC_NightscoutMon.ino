@@ -336,7 +336,11 @@ void update_glycemia() {
     char NSurl[128];
     strcpy(NSurl,"https://");
     strcat(NSurl,cfg.url);
-    strcat(NSurl,"/api/v1/entries.json?find[type][$eq]=sgv"); // "/api/v1/entries.json"
+    if(cfg.sgv_only) {
+      strcat(NSurl,"/api/v1/entries.json?find[type][$eq]=sgv");
+    } else {
+      strcat(NSurl,"/api/v1/entries.json");
+    }
     // more info at /api/v2/properties
     http.begin(NSurl); //HTTP
     
@@ -364,7 +368,7 @@ void update_glycemia() {
         // invalid Unicode character defined by Ascensia Diabetes Care Bluetooth Glucose Meter
         // ArduinoJSON does not accept any unicode surrogate pairs like \u0032 or \u0000
         json.replace("\\u0000"," ");
-        // Serial.println(json);
+        Serial.println(json);
         // const size_t capacity = JSON_ARRAY_SIZE(10) + 10*JSON_OBJECT_SIZE(19) + 3840;
         // Serial.print("JSON size needed= "); Serial.print(capacity); 
         Serial.print("Free Heap = "); Serial.println(ESP.getFreeHeap());
