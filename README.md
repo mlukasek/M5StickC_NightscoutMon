@@ -12,6 +12,10 @@
 
 ### Revisions:
 
+#### *** 28 October 2019 ***
+Key sgv_only (default 0) added to M5NS.INI. You should set it to 1 if you use xDrip, Spike or similar to filter out calibrations etc.  
+Maximum password length extended to 63 characters.  
+
 #### *** 8 Sep 2019 ***
 Query for only the SGV records (Sulka Haro).  
 Better display cleaning after WiFi symbol display.
