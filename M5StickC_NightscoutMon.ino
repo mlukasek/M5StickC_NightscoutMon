@@ -368,6 +368,8 @@ void update_glycemia() {
         // invalid Unicode character defined by Ascensia Diabetes Care Bluetooth Glucose Meter
         // ArduinoJSON does not accept any unicode surrogate pairs like \u0032 or \u0000
         json.replace("\\u0000"," ");
+        json.replace("\\u000b"," ");
+        json.replace("\\u0032"," ");
         Serial.println(json);
         // const size_t capacity = JSON_ARRAY_SIZE(10) + 10*JSON_OBJECT_SIZE(19) + 3840;
         // Serial.print("JSON size needed= "); Serial.print(capacity); 
@@ -487,6 +489,8 @@ void update_glycemia() {
               // invalid Unicode character defined by Ascensia Diabetes Care Bluetooth Glucose Meter
               // ArduinoJSON does not accept any unicode surrogate pairs like \u0032 or \u0000
               propjson.replace("\\u0000"," ");
+              propjson.replace("\\u000b"," ");
+              propjson.replace("\\u0032"," ");
               const size_t propcapacity = JSON_ARRAY_SIZE(2) + JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(4) + JSON_OBJECT_SIZE(6) + 2*JSON_OBJECT_SIZE(7) + 4*JSON_OBJECT_SIZE(8) + 770 + 1000;
               DynamicJsonDocument propdoc(propcapacity);
               DeserializationError propJSONerr = deserializeJson(propdoc, propjson);
