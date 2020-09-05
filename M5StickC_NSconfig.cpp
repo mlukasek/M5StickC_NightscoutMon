@@ -3,7 +3,8 @@
 // here write YOUR NIGHTSCOUT configuration data (do not edit M5StickC_NSconfig.h file)
 
 void readConfiguration(tConfig *cfg) {
-  strlcpy(cfg->url, "username.herokuapp.com", 64);
+  strlcpy(cfg->url, "username.herokuapp.com", 64); // Nightscout URL
+  strlcpy(cfg->token, "", 32); // security token
   cfg->bootPic[0]=0;
   strcpy(cfg->userName, "User");
   cfg->timeZone = 3600; // time zone shift in second (1 hour = 3600 seconds)

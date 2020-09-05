@@ -7,6 +7,7 @@
 // in case that filling data somehow fails
 struct tConfig {
   char url[64];
+  char token[32];
   char bootPic[64];
   char userName[32];
   int timeZone = 3600; // time zone offset in hours, must be corrected for internatinal use and DST
