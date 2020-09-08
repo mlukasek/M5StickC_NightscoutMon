@@ -532,7 +532,7 @@ void update_glycemia() {
                     M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
                   else
                     M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-                  M5.Lcd.drawString(cob_displayLine, 60, 71, 1);
+                  M5.Lcd.drawString(cob_displayLine, 70, 71, 1);
                 }
               }
             }
