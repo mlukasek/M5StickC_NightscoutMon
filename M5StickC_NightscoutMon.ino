@@ -509,7 +509,7 @@ void update_glycemia() {
               const size_t propcapacity = JSON_ARRAY_SIZE(2) + JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(4) + JSON_OBJECT_SIZE(6) + 2*JSON_OBJECT_SIZE(7) + 4*JSON_OBJECT_SIZE(8) + 770 + 1000;
               DynamicJsonDocument propdoc(propcapacity);
               DeserializationError propJSONerr = deserializeJson(propdoc, propjson);
-              if(propJSONerr) {
+              if(propJSONerr && (propJSONerr != "Ok")) {
                 Serial.println("Properties JSON parsing failed");
                 Serial.print("DeserializationError = "); Serial.println(JSONerr.c_str());
                 M5.Lcd.fillRect(0,24,69,23,TFT_BLACK);
