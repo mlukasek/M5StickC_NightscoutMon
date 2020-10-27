@@ -15,6 +15,7 @@ void readConfiguration(tConfig *cfg) {
   cfg->show_COB_IOB = 1; // show COB and IOB
   cfg->snooze_timeout = 30; // not used currently
   cfg->alarm_repeat = 5; // not used currently
+  cfg->power_on_wifi_delay = 30; // delay between power on and searching for WiFi SSID
   cfg->dev_mode = 0; // only for developer purposes
   cfg->yellow_low = 4.4; // show glycemia value yellow under this value (always in mmol/L)
   cfg->yellow_high = 9.0; // show glycemia value yellow over this value (always in mmol/L)
@@ -32,8 +33,8 @@ void readConfiguration(tConfig *cfg) {
   cfg->brightness1 = 10; // default display brightness (0-15, but reasonable values are 7-15)
   cfg->brightness2 = 15; // the second level of display brightness (0-15, but reasonable values are 7-15)
   cfg->brightness3 = 8; // the third level of display brightness (0-15, but reasonable values are 7-15)
-  strlcpy(cfg->wlan1ssid, "Skr1474",32);
-  strlcpy(cfg->wlan1pass, "dddddddd", 63);
+  strlcpy(cfg->wlan1ssid, "GuyD",32);
+  strlcpy(cfg->wlan1pass, "HxBXTzeFv4tn7dg", 63);
   strlcpy(cfg->wlan2ssid, "wlan2ssid", 32);
   strlcpy(cfg->wlan2pass, "wlan2pass", 63);
   strlcpy(cfg->wlan3ssid, "wlan3ssid", 32);
