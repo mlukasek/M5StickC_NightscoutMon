@@ -221,7 +221,7 @@ void setup() {
   
   // Lcd display
   M5.Axp.ScreenBreath(0);
-  M5.Lcd.setRotation(3);
+  M5.Lcd.setRotation(1);
   M5.Lcd.fillScreen(BLACK);
   M5.Lcd.setTextColor(WHITE);
   M5.Lcd.setCursor(0, 0, 1);
@@ -264,6 +264,7 @@ void setup() {
 
   lcdBrightness = cfg.brightness1;
   M5.Axp.ScreenBreath(lcdBrightness);
+  delay(cfg.power_on_wifi_delay*1000);
   wifi_connect();
   yield();
 
@@ -551,7 +552,7 @@ void update_glycemia() {
                     M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
                   else
                     M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-                  M5.Lcd.drawString(cob_displayLine, 70, 71, 1);
+                  M5.Lcd.drawString(cob_displayLine, 60, 71, 1);
                 }
               }
             }

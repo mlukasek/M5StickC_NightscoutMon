@@ -18,6 +18,7 @@ struct tConfig {
   int show_COB_IOB = 0;
   int snooze_timeout = 30; // timeout to snooze alarm in minutes
   int alarm_repeat = 5; // repeat alarm every X minutes
+  int power_on_wifi_delay = 0; // delay (in seconds) between power on and searching for WiFi SSID
   float yellow_low = 4.5;
   float yellow_high = 9;
   float red_low = 3.9;
