@@ -12,23 +12,36 @@
 
 ### Revisions:
 
+#### *** 24 December 2020 ***
+Support for M5StickC PLUS added.  
+
+#### *** 27 October 2020 ***
+Create a delay between POWER ON and searching for WiFi.  
+
+#### *** 8 September 2020 ***
+Fix spacing between IOB and COB values.  
+
+#### *** 5 September 2020 ***
+Nightscout token support added.  
+JSON unicode characters replacement for Medtronics.  
+
 #### *** 28 October 2019 ***
 Key sgv_only (default 0) added to M5NS.INI. You should set it to 1 if you use xDrip, Spike or similar to filter out calibrations etc.  
 Maximum password length extended to 63 characters.  
 
-#### *** 8 Sep 2019 ***
+#### *** 8 September 2019 ***
 Query for only the SGV records (Sulka Haro).  
 Better display cleaning after WiFi symbol display.
 
-#### *** 7 Sep 2019 ***
+#### *** 7 September 2019 ***
 JSON query update for Ascensia Diabetes Care Bluetooth Glucose Meter.  
 Small changes in SPK HAT speaker routines.  
 Removed forgotten alarm test from main button, so it now changes the brightness only, as supposed to do.
 
-#### *** 16 Jul 2019 *** 
+#### *** 16 July 2019 *** 
 Added support for M5StickC Speaker Hat (SPK, PAM8303).
 
-#### *** 3 Jun 2019 ***
+#### *** 3 June 2019 ***
 Alarm/warnign LED frequency changed. 
 
 #### *** 18 May 2019 ***
