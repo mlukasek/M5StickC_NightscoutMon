@@ -20,7 +20,9 @@
     Sulka Haro (Nightscout API queries help)
 */
 
+// comment out one of the following lines according to your device
 #include <M5StickC.h>
+//#include <M5StickCPlus.h>
 
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -64,9 +66,31 @@ void startupLogo() {
     M5.Axp.ScreenBreath(0);
     if(cfg.bootPic[0]==0) {
       // M5.Lcd.pushImage(0, 0, 160, 80, (uint16_t *)gImage_logoM5);
-      M5.Lcd.drawString("M5 Stack", 55, 10, 2);
-      M5.Lcd.drawString("Nightscout monitor", 25, 22, 2);
-      M5.Lcd.drawString("(c) 2019 Martin Lukasek", 0, 50, 2);
+      Serial.print("height = "); Serial.println(M5.Lcd.height());
+      Serial.print("width = "); Serial.println(M5.Lcd.width());
+      if(M5.Lcd.width()>160) { // PLUS version has bigger display
+        // M5.Lcd.setTextSize(2);
+        // char tmpstr[100];
+        // M5.Axp.ScreenBreath(15);
+        /*
+        for(int i=0; i<255; i++) {
+          M5.Lcd.fillScreen(BLACK);
+          M5.Lcd.drawCentreString("M5 Stack", 120, 10, i);
+          M5.Lcd.drawCentreString("Nightscout monitor", 120, 50, i);
+          sprintf(tmpstr, "f = %d, w = %d, h = %d", i, M5.Lcd.textWidth(tmpstr, i), M5.Lcd.fontHeight(i));
+          Serial.println(tmpstr);
+          M5.Lcd.drawCentreString(tmpstr, 120, 100, 2);
+          delay(2000);
+        } */
+        //M5.Lcd.setTextSize(1);
+        M5.Lcd.drawCentreString("M5StickC PLUS", 118, 20, 4);
+        M5.Lcd.drawCentreString("Nightscout monitor", 118, 50, 4);
+        M5.Lcd.drawCentreString("(c) 2019-2020 Martin Lukasek", 118, 100, 2);
+      } else {
+        M5.Lcd.drawString("M5StickC", 55, 10, 2);
+        M5.Lcd.drawString("Nightscout monitor", 25, 22, 2);
+        M5.Lcd.drawString("(c) 2019 Martin Lukasek", 0, 50, 2);
+      }
     } else {
       // M5.Lcd.drawJpgFile(SD, cfg.bootPic);
     }
@@ -218,10 +242,19 @@ void setup() {
   pinMode(M5_LED, OUTPUT);
   led_alert = 0;
   digitalWrite(M5_LED, HIGH);
-  
-  // Lcd display
   M5.Axp.ScreenBreath(0);
-  M5.Lcd.setRotation(1);
+  
+  readConfiguration(&cfg);
+  // cfg.snd_warning = 6.5;
+  // cfg.snd_alarm = 4.5;
+  // cfg.snd_warning_high = 9;
+  // cfg.snd_alarm_high = 10;
+  // cfg.alarm_repeat = 1;
+  // cfg.snooze_timeout = 2;
+  // cfg.brightness1 = 0;
+
+  // Lcd display
+  M5.Lcd.setRotation(cfg.display_rotation);
   M5.Lcd.fillScreen(BLACK);
   M5.Lcd.setTextColor(WHITE);
   M5.Lcd.setCursor(0, 0, 1);
@@ -238,15 +271,6 @@ void setup() {
   CLEAR_PERI_REG_MASK(RTC_IO_PAD_DAC1_REG, RTC_IO_PDAC1_XPD_DAC | RTC_IO_PDAC1_DAC_XPD_FORCE);
   digitalWrite(M5_LED, HIGH);
   yield();
-
-  readConfiguration(&cfg);
-  // cfg.snd_warning = 6.5;
-  // cfg.snd_alarm = 4.5;
-  // cfg.snd_warning_high = 9;
-  // cfg.snd_alarm_high = 10;
-  // cfg.alarm_repeat = 1;
-  // cfg.snooze_timeout = 2;
-  // cfg.brightness1 = 0;
 
   startupLogo();
   yield();
@@ -325,8 +349,13 @@ void update_glycemia() {
  
   M5.Lcd.setTextSize(1);
   M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-  M5.Lcd.fillRect(96, 16, 64, 54, TFT_BLACK);
-  M5.Lcd.drawBitmap(96, 16, 64, 48, (uint16_t *)WiFi_symbol);
+  if(M5.Lcd.width()>160) { // PLUS version has bigger display
+    M5.Lcd.fillRect(176, 25, 64, 89, TFT_BLACK);
+    M5.Lcd.drawBitmap(176, 26, 64, 48, (uint16_t *)WiFi_symbol);
+  } else {
+    M5.Lcd.fillRect(96, 16, 64, 54, TFT_BLACK);
+    M5.Lcd.drawBitmap(96, 16, 64, 48, (uint16_t *)WiFi_symbol);
+  }
   // uint16_t maxWidth, uint16_t maxHeight, uint16_t offX, uint16_t offY, jpeg_div_t scale);
   if((WiFiMulti.run() == WL_CONNECTED)) {
 
@@ -513,10 +542,15 @@ void update_glycemia() {
               if(propJSONerr) {
                 Serial.println("Properties JSON parsing failed");
                 Serial.print("DeserializationError = "); Serial.println(JSONerr.c_str());
-                M5.Lcd.fillRect(0,24,69,23,TFT_BLACK);
                 M5.Lcd.setTextColor(TFT_YELLOW, TFT_BLACK);
                 M5.Lcd.setTextSize(1);
-                M5.Lcd.drawString("???", 115, 0, 2);
+                if(M5.Lcd.width()>160) { // PLUS version has bigger display
+                  M5.Lcd.fillRect(0,25,69,23,TFT_BLACK);
+                  M5.Lcd.drawString("???", 115, 0, 4);
+                } else {
+                  M5.Lcd.fillRect(0,24,69,23,TFT_BLACK);
+                  M5.Lcd.drawString("???", 115, 0, 2);
+                }
               } else {
                 JsonObject iob = propdoc["iob"];
                 float iob_iob = iob["iob"]; // 0
@@ -536,23 +570,40 @@ void update_glycemia() {
                 int delta_mgdl = delta["mgdl"]; // -4
                 float delta_scaled = delta["scaled"]; // -0.2
                 const char* delta_display = delta["display"] | "N/A"; // "-0.2"
-                M5.Lcd.fillRect(80,0,64,17,TFT_BLACK);
-                M5.Lcd.setTextSize(1);
-                M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-                M5.Lcd.drawString(delta_display, 115, 0, 2);
+
+                if(M5.Lcd.width()>160) { // PLUS version has bigger display
+                  M5.Lcd.fillRect(180, 0, 60, 24, TFT_BLACK);
+                  M5.Lcd.setTextSize(1);
+                  M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+                  M5.Lcd.drawString(delta_display, 237-M5.Lcd.textWidth(delta_display, 4), 2, 4);
+                } else {
+                  M5.Lcd.fillRect(80, 0, 64, 17, TFT_BLACK);
+                  M5.Lcd.setTextSize(1);
+                  M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+                  M5.Lcd.drawString(delta_display, 115, 0, 2);
+                }
       
                 if(cfg.show_COB_IOB) {
-                  M5.Lcd.fillRect(0,70,160,10,TFT_BLACK);
                   if(iob_iob>0)
                     M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
                   else
                     M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-                  M5.Lcd.drawString(iob_displayLine, 0, 71, 1);
+                  if(M5.Lcd.width()>160) { // PLUS version has bigger display
+                    M5.Lcd.fillRect(0,117,240,18,TFT_BLACK);
+                    M5.Lcd.drawString(iob_displayLine, 0, 118, 2);
+                  } else {
+                    M5.Lcd.fillRect(0,70,160,10,TFT_BLACK);
+                    M5.Lcd.drawString(iob_displayLine, 0, 71, 1);
+                  }
                   if(cob_cob>0)
                     M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
                   else
                     M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-                  M5.Lcd.drawString(cob_displayLine, 60, 71, 1);
+                  if(M5.Lcd.width()>160) { // PLUS version has bigger display
+                    M5.Lcd.drawString(cob_displayLine, 120, 118, 2);
+                  } else {
+                    M5.Lcd.drawString(cob_displayLine, 70, 71, 1);
+                  }
                 }
               }
             }
@@ -575,16 +626,24 @@ void update_glycemia() {
               tdColor = TFT_RED;
             }
           }
-          
-          M5.Lcd.fillRoundRect(16,0,64,16,5,tdColor);
-          M5.Lcd.setTextSize(1);
-          // M5.Lcd.setTextDatum(MC_DATUM);
-          M5.Lcd.setTextColor(TFT_BLACK, tdColor);
+
           if(sensorDifMin>99) {
-            M5.Lcd.drawString("Error", 26, 0, 2);
+            strcpy(tmpstr, "Error");
           } else {
-            char tmpstr[32];
             sprintf(tmpstr, "%d min", sensorDifMin);
+          }
+          if(M5.Lcd.width()>160) { // PLUS version has bigger display
+            M5.Lcd.fillRoundRect(0, 0, 120, 24, 5, tdColor);
+            M5.Lcd.setTextSize(1);
+            // strcpy(tmpstr, "89 min");
+            // M5.Lcd.setTextDatum(MC_DATUM);
+            M5.Lcd.setTextColor(TFT_BLACK, tdColor);
+            M5.Lcd.drawString(tmpstr, 60-M5.Lcd.textWidth(tmpstr, 4)/2, 1, 4);
+          } else {
+            M5.Lcd.fillRoundRect(16, 0, 64, 16, 5, tdColor);
+            M5.Lcd.setTextSize(1);
+            // M5.Lcd.setTextDatum(MC_DATUM);
+            M5.Lcd.setTextColor(TFT_BLACK, tdColor);
             M5.Lcd.drawString(tmpstr, 26, 0, 2);
           }
           
@@ -600,11 +659,9 @@ void update_glycemia() {
           sprintf(glykStr, "Glyk: %4.1f %s", sensSgv, sensDir);
           Serial.println(glykStr);
           // M5.Lcd.println(glykStr);
-          
-          M5.Lcd.fillRect(0, 17, 160, 53, TFT_BLACK);
-          M5.Lcd.setTextSize(2);
-          // M5.Lcd.setTextDatum(TL_DATUM);
-          M5.Lcd.setTextColor(glColor, TFT_BLACK);
+
+          // cfg.show_mgdl = 1;
+          // sensSgv = 25.9;
           char sensSgvStr[30];
           int smaller_font = 0;
           if( cfg.show_mgdl ) {
@@ -614,14 +671,35 @@ void update_glycemia() {
             if( sensSgvStr[0]!=' ' )
               smaller_font = 1;
           }
-          // Serial.print("SGV string length = "); Serial.print(strlen(sensSgvStr));
-          // Serial.print(", smaller_font = "); Serial.println(smaller_font);
-          if( smaller_font ) {
-            // M5.Lcd.setFreeFont(FSSB18);
-            M5.Lcd.drawString(sensSgvStr, 0, 19, 4);
+          if(M5.Lcd.width()>160) { // PLUS version has bigger display
+            M5.Lcd.fillRect(0, 25, 240, 89, TFT_BLACK);
+            // M5.Lcd.setTextDatum(TL_DATUM);
+            M5.Lcd.setTextColor(glColor, TFT_BLACK);
+            // Serial.print("SGV string length = "); Serial.print(strlen(sensSgvStr));
+            // Serial.print(", smaller_font = "); Serial.println(smaller_font);
+            if( smaller_font ) {
+              // M5.Lcd.setFreeFont(FSSB18);
+              M5.Lcd.setTextSize(3);
+              M5.Lcd.drawString(sensSgvStr, 0, 40, 4);
+            } else {
+              // M5.Lcd.setFreeFont(FSSB24);
+              M5.Lcd.setTextSize(1);
+              M5.Lcd.drawString(sensSgvStr, 0, 30, 8);
+            }
           } else {
-            // M5.Lcd.setFreeFont(FSSB24);
-            M5.Lcd.drawString(sensSgvStr, 0, 19, 4);
+            M5.Lcd.fillRect(0, 17, 160, 53, TFT_BLACK);
+            M5.Lcd.setTextSize(2);
+            // M5.Lcd.setTextDatum(TL_DATUM);
+            M5.Lcd.setTextColor(glColor, TFT_BLACK);
+            // Serial.print("SGV string length = "); Serial.print(strlen(sensSgvStr));
+            // Serial.print(", smaller_font = "); Serial.println(smaller_font);
+            if( smaller_font ) {
+              // M5.Lcd.setFreeFont(FSSB18);
+              M5.Lcd.drawString(sensSgvStr, 0, 19, 4);
+            } else {
+              // M5.Lcd.setFreeFont(FSSB24);
+              M5.Lcd.drawString(sensSgvStr, 0, 19, 4);
+            }
           }
           int tw=M5.Lcd.textWidth(sensSgvStr)*2;
           int th=M5.Lcd.fontHeight(4);
@@ -655,10 +733,15 @@ void update_glycemia() {
                                     else 
                                         if(strcmp(sensDir,"NOT COMPUTABLE")==0)
                                           arrowAngle = 180;
-          if(arrowAngle!=180)
+          if(arrowAngle!=180) {
             // drawArrow(0+tw+25, 0+40, 10, arrowAngle+85, 40, 40, glColor);
-            drawArrow(112, 40, 10, arrowAngle+85, 30, 30, glColor);
-
+            if(M5.Lcd.width()>160) { // PLUS version has bigger display
+              drawArrow(192, 70, 14, arrowAngle+85, 42, 42, glColor);
+            } else {
+              drawArrow(112, 40, 10, arrowAngle+85, 30, 30, glColor);
+            }
+          }
+          
           /*
           // draw help lines
           for(int i=0; i<320; i+=40) {
