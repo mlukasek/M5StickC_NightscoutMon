@@ -22,7 +22,7 @@
 
 // comment out one of the following lines according to your device
 #include <M5StickC.h>
-//#include <M5StickCPlus.h>
+// #include <M5StickCPlus.h>
 
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -56,10 +56,12 @@ static uint8_t lcdBrightness = 10;
 
 DynamicJsonDocument JSONdoc(16384);
 float last10sgv[10];
+bool is_Sugarmate = 0; 
 int wasError = 0;
 time_t lastAlarmTime = 0;
 time_t lastSnoozeTime = 0;
 int led_alert = 0;
+char delta_display[32];
 
 void startupLogo() {
     // static uint8_t brightness, pre_brightness;
@@ -364,22 +366,32 @@ void update_glycemia() {
     Serial.print("[HTTP] begin...\n");
     // configure target server and url
     char NSurl[128];
-    strcpy(NSurl,"https://");
+    if(strncmp(cfg.url, "http", 4))
+      strcpy(NSurl,"https://");
+    else
+      strcpy(NSurl,"");
     strcat(NSurl,cfg.url);
-    if(cfg.sgv_only) {
-      strcat(NSurl,"/api/v1/entries.json?find[type][$eq]=sgv");
-    } else {
-      strcat(NSurl,"/api/v1/entries.json");
-    }
-    if ((cfg.token!=NULL) && (strlen(cfg.token)>0)) {
-      if(strchr(NSurl,'?'))
-        strcat(NSurl,"&token=");
-      else
-        strcat(NSurl,"?token=");
-      strcat(NSurl,cfg.token);
+    if(strstr(NSurl,"sugarmate") != NULL) // Sugarmate JSON URL for Dexcom follower
+      is_Sugarmate = 1;
+    else
+    {
+      is_Sugarmate = 0;
+      if(cfg.sgv_only) {
+        strcat(NSurl,"/api/v1/entries.json?find[type][$eq]=sgv");
+      } else {
+        strcat(NSurl,"/api/v1/entries.json");
+      }
+      if ((cfg.token!=NULL) && (strlen(cfg.token)>0)) {
+        if(strchr(NSurl,'?'))
+          strcat(NSurl,"&token=");
+        else
+          strcat(NSurl,"?token=");
+        strcat(NSurl,cfg.token);
+      }
     }
 
     // more info at /api/v2/properties
+    Serial.printf("NSUrl=%s\n", NSurl);
     http.begin(NSurl); //HTTP
     
     Serial.print("[HTTP] GET...\n");
@@ -413,6 +425,8 @@ void update_glycemia() {
         // Serial.print("JSON size needed= "); Serial.print(capacity); 
         Serial.print("Free Heap = "); Serial.println(ESP.getFreeHeap());
         DeserializationError JSONerr = deserializeJson(JSONdoc, json);
+        strcpy(delta_display, "N/A");
+        time_t sensTime;
         if (JSONerr) {   //Check for errors in parsing
           Serial.println("JSON parsing failed");
           Serial.print("DeserializationError = "); Serial.println(JSONerr.c_str());
@@ -425,23 +439,74 @@ void update_glycemia() {
           char sensDir[32];
           float sensSgv = 0;
           JsonObject obj; 
-          int sgvindex = 0;
-          do {
-            obj=JSONdoc[sgvindex].as<JsonObject>();
-            sgvindex++;
-          } while ((!obj.containsKey("sgv")) && (sgvindex<9));
-          sgvindex--;
-          if(sgvindex<0 || sgvindex>8)
-            sgvindex=0;
-          strlcpy(sensDev, JSONdoc[sgvindex]["device"] | "N/A", 64);
-          rawtime = JSONdoc[sgvindex]["date"].as<long long>(); // sensTime is time in milliseconds since 1970, something like 1555229938118
-          strlcpy(sensDir, JSONdoc[sgvindex]["direction"] | "N/A", 32);
-          sensSgv = JSONdoc[sgvindex]["sgv"]; // get value of sensor measurement
-          time_t sensTime = rawtime / 1000; // no milliseconds, since 2000 would be - 946684800, but ok
-          for(int i=0; i<=9; i++) {
-            last10sgv[i]=JSONdoc[i]["sgv"];
-            last10sgv[i]/=18.0;
+          if(is_Sugarmate==0) {
+            // Nightscout values
+            int sgvindex = 0;
+            do {
+              obj=JSONdoc[sgvindex].as<JsonObject>();
+              sgvindex++;
+            } while ((!obj.containsKey("sgv")) && (sgvindex<9));
+            sgvindex--;
+            if(sgvindex<0 || sgvindex>8)
+              sgvindex=0;
+            strlcpy(sensDev, JSONdoc[sgvindex]["device"] | "N/A", 64);
+            rawtime = JSONdoc[sgvindex]["date"].as<long long>(); // sensTime is time in milliseconds since 1970, something like 1555229938118
+            strlcpy(sensDir, JSONdoc[sgvindex]["direction"] | "N/A", 32);
+            sensSgv = JSONdoc[sgvindex]["sgv"]; // get value of sensor measurement
+            sensTime = rawtime / 1000; // no milliseconds, since 2000 would be - 946684800, but ok
+            for(int i=0; i<=9; i++) {
+              last10sgv[i]=JSONdoc[i]["sgv"];
+              last10sgv[i]/=18.0;
+            }
+          } else {
+            // Sugarmate values
+            strcpy(sensDev, "Sugarmate");
+            // ns->is_xDrip = 0;
+            sensSgv = JSONdoc["value"]; // get value of sensor measurement
+            time_t tmptime = JSONdoc["x"]; // time in milliseconds since 1970
+            if(sensTime != tmptime) {
+              for(int i=9; i>0; i--) { // add new value and shift buffer
+                last10sgv[i]=last10sgv[i-1];
+              }
+              last10sgv[0] = sensSgv;
+              // char jdunits[100];
+              // strcpy(jdunits, JSONdoc["units"]);
+              // Serial.print("JSONdoc[units] = "); Serial.println(jdunits);
+              // if(strstr(JSONdoc["units"],"mg/dL") != NULL) { // Units are mg/dL, but last10sgv is in mmol/L -> convert 
+                // should be converted always, as "value" seems to be always in mg/dL
+                last10sgv[0]/=18.0;
+              // }
+
+              sensTime = tmptime;
+            }
+            rawtime = (long long)sensTime * (long long)1000; // possibly not needed, but to make the structure values complete
+            strlcpy(sensDir, JSONdoc["trend_words"] | "N/A", 32);
+            int delta_mgdl = JSONdoc["delta"]; // get value of sensor measurement
+            float delta_scaled = delta_mgdl/18.0;
+            /*
+            int delta_absolute = ns->delta_mgdl;
+            bool delta_interpolated = 0;
+            */
+            if(cfg.show_mgdl) {
+              sprintf(delta_display, "%+d", delta_mgdl);
+            } else {
+              sprintf(delta_display, "%+.1f", delta_scaled);
+            }
+            
+            if(M5.Lcd.width()>160) { // PLUS version has bigger display
+              M5.Lcd.fillRect(180, 0, 60, 24, TFT_BLACK);
+              M5.Lcd.setTextSize(1);
+              M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+              M5.Lcd.drawString(delta_display, 237-M5.Lcd.textWidth(delta_display, 4), 2, 4);
+            } else {
+              M5.Lcd.fillRect(80, 0, 64, 17, TFT_BLACK);
+              M5.Lcd.setTextSize(1);
+              M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+              M5.Lcd.drawString(delta_display, 115, 0, 2);
+            }
+  
           }
+
           float sensSgvMgDl = sensSgv;
           // internally we work in mmol/L
           sensSgv/=18.0;
@@ -504,105 +569,107 @@ void update_glycemia() {
             M5.Lcd.drawString(heapstr, 0, 48, GFXFF);
           }
           */
-          
-          strcpy(NSurl,"https://");
-          strcat(NSurl,cfg.url);
-          strcat(NSurl,"/api/v2/properties/iob,cob,delta");
-          if ((cfg.token!=NULL) && (strlen(cfg.token)>0)) {
-            if(strchr(NSurl,'?'))
-              strcat(NSurl,"&token=");
-            else
-              strcat(NSurl,"?token=");
-            strcat(NSurl,cfg.token);
-          }
-          http.begin(NSurl); //HTTP
-          Serial.print("[HTTP] GET properties...\n");
-          int httpCode = http.GET();
-          if(httpCode > 0) {
-            Serial.printf("[HTTP] GET properties... code: %d\n", httpCode);
-            if(httpCode == HTTP_CODE_OK) {
-              // const char* propjson = "{\"iob\":{\"iob\":0,\"activity\":0,\"source\":\"OpenAPS\",\"device\":\"openaps://Spike iPhone 8 Plus\",\"mills\":1557613521000,\"display\":\"0\",\"displayLine\":\"IOB: 0U\"},\"cob\":{\"cob\":0,\"source\":\"OpenAPS\",\"device\":\"openaps://Spike iPhone 8 Plus\",\"mills\":1557613521000,\"treatmentCOB\":{\"decayedBy\":\"2019-05-11T23:05:00.000Z\",\"isDecaying\":0,\"carbs_hr\":20,\"rawCarbImpact\":0,\"cob\":7,\"lastCarbs\":{\"_id\":\"5cd74c26156712edb4b32455\",\"enteredBy\":\"Martin\",\"eventType\":\"Carb Correction\",\"reason\":\"\",\"carbs\":7,\"duration\":0,\"created_at\":\"2019-05-11T22:24:00.000Z\",\"mills\":1557613440000,\"mgdl\":67}},\"display\":0,\"displayLine\":\"COB: 0g\"},\"delta\":{\"absolute\":-4,\"elapsedMins\":4.999483333333333,\"interpolated\":false,\"mean5MinsAgo\":69,\"mgdl\":-4,\"scaled\":-0.2,\"display\":\"-0.2\",\"previous\":{\"mean\":69,\"last\":69,\"mills\":1557613221946,\"sgvs\":[{\"mgdl\":69,\"mills\":1557613221946,\"device\":\"MIAOMIAO\",\"direction\":\"Flat\",\"filtered\":92588,\"unfiltered\":92588,\"noise\":1,\"rssi\":100}]}}}";
-              String propjson = http.getString();
-              // remove any non text characters (just for sure)
-              for(int i=0; i<propjson.length(); i++) {
-                // Serial.print(propjson.charAt(i), DEC); Serial.print(" = "); Serial.println(propjson.charAt(i));
-                if(propjson.charAt(i)<32 /* || propjson.charAt(i)=='\\' */) {
-                  propjson.setCharAt(i, 32);
-                }
-              }
-              // propjson.replace("\\n"," ");
-              // invalid Unicode character defined by Ascensia Diabetes Care Bluetooth Glucose Meter
-              // ArduinoJSON does not accept any unicode surrogate pairs like \u0032 or \u0000
-              propjson.replace("\\u0000"," ");
-              propjson.replace("\\u000b"," ");
-              propjson.replace("\\u0032"," ");
-              const size_t propcapacity = JSON_ARRAY_SIZE(2) + JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(4) + JSON_OBJECT_SIZE(6) + 2*JSON_OBJECT_SIZE(7) + 4*JSON_OBJECT_SIZE(8) + 770 + 1000;
-              DynamicJsonDocument propdoc(propcapacity);
-              DeserializationError propJSONerr = deserializeJson(propdoc, propjson);
-              if(propJSONerr) {
-                Serial.println("Properties JSON parsing failed");
-                Serial.print("DeserializationError = "); Serial.println(JSONerr.c_str());
-                M5.Lcd.setTextColor(TFT_YELLOW, TFT_BLACK);
-                M5.Lcd.setTextSize(1);
-                if(M5.Lcd.width()>160) { // PLUS version has bigger display
-                  M5.Lcd.fillRect(0,25,69,23,TFT_BLACK);
-                  M5.Lcd.drawString("???", 115, 0, 4);
-                } else {
-                  M5.Lcd.fillRect(0,24,69,23,TFT_BLACK);
-                  M5.Lcd.drawString("???", 115, 0, 2);
-                }
-              } else {
-                JsonObject iob = propdoc["iob"];
-                float iob_iob = iob["iob"]; // 0
-                const char* iob_display = iob["display"] | "N/A"; // "0"
-                const char* iob_displayLine = iob["displayLine"] | "IOB: N/A"; // "IOB: 0U"
-                
-                JsonObject cob = propdoc["cob"];
-                float cob_cob = cob["cob"]; // 0
-                const char* cob_display = cob["display"] | "N/A"; // 0
-                const char* cob_displayLine = cob["displayLine"] | "COB: N/A"; // "COB: 0g"
-                
-                JsonObject delta = propdoc["delta"];
-                int delta_absolute = delta["absolute"]; // -4
-                float delta_elapsedMins = delta["elapsedMins"]; // 4.999483333333333
-                bool delta_interpolated = delta["interpolated"]; // false
-                int delta_mean5MinsAgo = delta["mean5MinsAgo"]; // 69
-                int delta_mgdl = delta["mgdl"]; // -4
-                float delta_scaled = delta["scaled"]; // -0.2
-                const char* delta_display = delta["display"] | "N/A"; // "-0.2"
 
-                if(M5.Lcd.width()>160) { // PLUS version has bigger display
-                  M5.Lcd.fillRect(180, 0, 60, 24, TFT_BLACK);
-                  M5.Lcd.setTextSize(1);
-                  M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-                  M5.Lcd.drawString(delta_display, 237-M5.Lcd.textWidth(delta_display, 4), 2, 4);
-                } else {
-                  M5.Lcd.fillRect(80, 0, 64, 17, TFT_BLACK);
-                  M5.Lcd.setTextSize(1);
-                  M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-                  M5.Lcd.drawString(delta_display, 115, 0, 2);
-                }
-      
-                if(cfg.show_COB_IOB) {
-                  if(iob_iob>0)
-                    M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-                  else
-                    M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-                  if(M5.Lcd.width()>160) { // PLUS version has bigger display
-                    M5.Lcd.fillRect(0,117,240,18,TFT_BLACK);
-                    M5.Lcd.drawString(iob_displayLine, 0, 118, 2);
-                  } else {
-                    M5.Lcd.fillRect(0,70,160,10,TFT_BLACK);
-                    M5.Lcd.drawString(iob_displayLine, 0, 71, 1);
+          if(is_Sugarmate==0) {
+            strcpy(NSurl,"https://");
+            strcat(NSurl,cfg.url);
+            strcat(NSurl,"/api/v2/properties/iob,cob,delta");
+            if ((cfg.token!=NULL) && (strlen(cfg.token)>0)) {
+              if(strchr(NSurl,'?'))
+                strcat(NSurl,"&token=");
+              else
+                strcat(NSurl,"?token=");
+              strcat(NSurl,cfg.token);
+            }
+            http.begin(NSurl); //HTTP
+            Serial.print("[HTTP] GET properties...\n");
+            int httpCode = http.GET();
+            if(httpCode > 0) {
+              Serial.printf("[HTTP] GET properties... code: %d\n", httpCode);
+              if(httpCode == HTTP_CODE_OK) {
+                // const char* propjson = "{\"iob\":{\"iob\":0,\"activity\":0,\"source\":\"OpenAPS\",\"device\":\"openaps://Spike iPhone 8 Plus\",\"mills\":1557613521000,\"display\":\"0\",\"displayLine\":\"IOB: 0U\"},\"cob\":{\"cob\":0,\"source\":\"OpenAPS\",\"device\":\"openaps://Spike iPhone 8 Plus\",\"mills\":1557613521000,\"treatmentCOB\":{\"decayedBy\":\"2019-05-11T23:05:00.000Z\",\"isDecaying\":0,\"carbs_hr\":20,\"rawCarbImpact\":0,\"cob\":7,\"lastCarbs\":{\"_id\":\"5cd74c26156712edb4b32455\",\"enteredBy\":\"Martin\",\"eventType\":\"Carb Correction\",\"reason\":\"\",\"carbs\":7,\"duration\":0,\"created_at\":\"2019-05-11T22:24:00.000Z\",\"mills\":1557613440000,\"mgdl\":67}},\"display\":0,\"displayLine\":\"COB: 0g\"},\"delta\":{\"absolute\":-4,\"elapsedMins\":4.999483333333333,\"interpolated\":false,\"mean5MinsAgo\":69,\"mgdl\":-4,\"scaled\":-0.2,\"display\":\"-0.2\",\"previous\":{\"mean\":69,\"last\":69,\"mills\":1557613221946,\"sgvs\":[{\"mgdl\":69,\"mills\":1557613221946,\"device\":\"MIAOMIAO\",\"direction\":\"Flat\",\"filtered\":92588,\"unfiltered\":92588,\"noise\":1,\"rssi\":100}]}}}";
+                String propjson = http.getString();
+                // remove any non text characters (just for sure)
+                for(int i=0; i<propjson.length(); i++) {
+                  // Serial.print(propjson.charAt(i), DEC); Serial.print(" = "); Serial.println(propjson.charAt(i));
+                  if(propjson.charAt(i)<32 /* || propjson.charAt(i)=='\\' */) {
+                    propjson.setCharAt(i, 32);
                   }
-                  if(cob_cob>0)
-                    M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-                  else
-                    M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+                }
+                // propjson.replace("\\n"," ");
+                // invalid Unicode character defined by Ascensia Diabetes Care Bluetooth Glucose Meter
+                // ArduinoJSON does not accept any unicode surrogate pairs like \u0032 or \u0000
+                propjson.replace("\\u0000"," ");
+                propjson.replace("\\u000b"," ");
+                propjson.replace("\\u0032"," ");
+                const size_t propcapacity = JSON_ARRAY_SIZE(2) + JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(4) + JSON_OBJECT_SIZE(6) + 2*JSON_OBJECT_SIZE(7) + 4*JSON_OBJECT_SIZE(8) + 770 + 1000;
+                DynamicJsonDocument propdoc(propcapacity);
+                DeserializationError propJSONerr = deserializeJson(propdoc, propjson);
+                if(propJSONerr) {
+                  Serial.println("Properties JSON parsing failed");
+                  Serial.print("DeserializationError = "); Serial.println(JSONerr.c_str());
+                  M5.Lcd.setTextColor(TFT_YELLOW, TFT_BLACK);
+                  M5.Lcd.setTextSize(1);
                   if(M5.Lcd.width()>160) { // PLUS version has bigger display
-                    M5.Lcd.drawString(cob_displayLine, 120, 118, 2);
+                    M5.Lcd.fillRect(0,25,69,23,TFT_BLACK);
+                    M5.Lcd.drawString("???", 115, 0, 4);
                   } else {
-                    M5.Lcd.drawString(cob_displayLine, 70, 71, 1);
+                    M5.Lcd.fillRect(0,24,69,23,TFT_BLACK);
+                    M5.Lcd.drawString("???", 115, 0, 2);
+                  }
+                } else {
+                  JsonObject iob = propdoc["iob"];
+                  float iob_iob = iob["iob"]; // 0
+                  const char* iob_display = iob["display"] | "N/A"; // "0"
+                  const char* iob_displayLine = iob["displayLine"] | "IOB: N/A"; // "IOB: 0U"
+                  
+                  JsonObject cob = propdoc["cob"];
+                  float cob_cob = cob["cob"]; // 0
+                  const char* cob_display = cob["display"] | "N/A"; // 0
+                  const char* cob_displayLine = cob["displayLine"] | "COB: N/A"; // "COB: 0g"
+                  
+                  JsonObject delta = propdoc["delta"];
+                  int delta_absolute = delta["absolute"]; // -4
+                  float delta_elapsedMins = delta["elapsedMins"]; // 4.999483333333333
+                  bool delta_interpolated = delta["interpolated"]; // false
+                  int delta_mean5MinsAgo = delta["mean5MinsAgo"]; // 69
+                  int delta_mgdl = delta["mgdl"]; // -4
+                  float delta_scaled = delta["scaled"]; // -0.2
+                  strncpy(delta_display, delta["display"] | "N/A", 20); // "-0.2"
+  
+                  if(M5.Lcd.width()>160) { // PLUS version has bigger display
+                    M5.Lcd.fillRect(180, 0, 60, 24, TFT_BLACK);
+                    M5.Lcd.setTextSize(1);
+                    M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+                    M5.Lcd.drawString(delta_display, 237-M5.Lcd.textWidth(delta_display, 4), 2, 4);
+                  } else {
+                    M5.Lcd.fillRect(80, 0, 64, 17, TFT_BLACK);
+                    M5.Lcd.setTextSize(1);
+                    M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+                    M5.Lcd.drawString(delta_display, 115, 0, 2);
+                  }
+        
+                  if(cfg.show_COB_IOB) {
+                    if(iob_iob>0)
+                      M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+                    else
+                      M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+                    if(M5.Lcd.width()>160) { // PLUS version has bigger display
+                      M5.Lcd.fillRect(0,117,240,18,TFT_BLACK);
+                      M5.Lcd.drawString(iob_displayLine, 0, 118, 2);
+                    } else {
+                      M5.Lcd.fillRect(0,70,160,10,TFT_BLACK);
+                      M5.Lcd.drawString(iob_displayLine, 0, 71, 1);
+                    }
+                    if(cob_cob>0)
+                      M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+                    else
+                      M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+                    if(M5.Lcd.width()>160) { // PLUS version has bigger display
+                      M5.Lcd.drawString(cob_displayLine, 120, 118, 2);
+                    } else {
+                      M5.Lcd.drawString(cob_displayLine, 70, 71, 1);
+                    }
                   }
                 }
               }
