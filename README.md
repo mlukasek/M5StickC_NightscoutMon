@@ -12,6 +12,9 @@
 
 ### Revisions:
 
+#### *** 31 January 2021 ***
+Support for Sugarmate added.  
+
 #### *** 24 December 2020 ***
 Support for M5StickC PLUS added.  
 
