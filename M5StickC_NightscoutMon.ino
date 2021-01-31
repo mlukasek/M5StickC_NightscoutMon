@@ -774,25 +774,25 @@ void update_glycemia() {
           Serial.print("textHeight="); Serial.println(th);
 
           int arrowAngle = 180;
-          if(strcmp(sensDir,"DoubleDown")==0)
+          if(strcmp(sensDir,"DoubleDown")==0 || strcmp(sensDir,"DOUBLE_DOWN")==0)
             arrowAngle = 90;
           else 
-            if(strcmp(sensDir,"SingleDown")==0)
+            if(strcmp(sensDir,"SingleDown")==0 || strcmp(sensDir,"SINGLE_DOWN")==0)
               arrowAngle = 75;
             else 
-                if(strcmp(sensDir,"FortyFiveDown")==0)
+                if(strcmp(sensDir,"FortyFiveDown")==0 || strcmp(sensDir,"FORTY_FIVE_DOWN")==0)
                   arrowAngle = 45;
                 else 
-                    if(strcmp(sensDir,"Flat")==0)
+                    if(strcmp(sensDir,"Flat")==0 || strcmp(sensDir,"FLAT")==0)
                       arrowAngle = 0;
                     else 
-                        if(strcmp(sensDir,"FortyFiveUp")==0)
+                        if(strcmp(sensDir,"FortyFiveUp")==0 || strcmp(sensDir,"FORTY_FIVE_UP")==0)
                           arrowAngle = -45;
                         else 
-                            if(strcmp(sensDir,"SingleUp")==0)
+                            if(strcmp(sensDir,"SingleUp")==0 || strcmp(sensDir,"SINGLE_UP")==0)
                               arrowAngle = -75;
                             else 
-                                if(strcmp(sensDir,"DoubleUp")==0)
+                                if(strcmp(sensDir,"DoubleUp")==0 || strcmp(sensDir,"DOUBLE_UP")==0)
                                   arrowAngle = -90;
                                 else 
                                     if(strcmp(sensDir,"NONE")==0)
@@ -800,6 +800,7 @@ void update_glycemia() {
                                     else 
                                         if(strcmp(sensDir,"NOT COMPUTABLE")==0)
                                           arrowAngle = 180;
+
           if(arrowAngle!=180) {
             // drawArrow(0+tw+25, 0+40, 10, arrowAngle+85, 40, 40, glColor);
             if(M5.Lcd.width()>160) { // PLUS version has bigger display
