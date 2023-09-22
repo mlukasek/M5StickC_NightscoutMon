@@ -21,8 +21,8 @@
 */
 
 // comment out one of the following lines according to your device
-#include <M5StickC.h>
-// #include <M5StickCPlus.h>
+//#include <M5StickC.h>
+#include <M5StickCPlus.h>
 
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -142,7 +142,7 @@ void sndAlarm() {
     }
     delay(200);
   }
-  CLEAR_PERI_REG_MASK(RTC_IO_PAD_DAC1_REG, RTC_IO_PDAC1_XPD_DAC | RTC_IO_PDAC1_DAC_XPD_FORCE);
+  //CLEAR_PERI_REG_MASK(RTC_IO_PAD_DAC1_REG, RTC_IO_PDAC1_XPD_DAC | RTC_IO_PDAC1_DAC_XPD_FORCE);
 }
 
 void sndWarning() {
@@ -164,7 +164,7 @@ void sndWarning() {
     }
     delay(300);
   }
-  CLEAR_PERI_REG_MASK(RTC_IO_PAD_DAC1_REG, RTC_IO_PDAC1_XPD_DAC | RTC_IO_PDAC1_DAC_XPD_FORCE);
+  //CLEAR_PERI_REG_MASK(RTC_IO_PAD_DAC1_REG, RTC_IO_PDAC1_XPD_DAC | RTC_IO_PDAC1_DAC_XPD_FORCE);
 }
 
 void buttons_test() {
@@ -270,7 +270,7 @@ void setup() {
   ledcAttachPin(SPK_pin, spkChannel);
   ledcWrite(spkChannel, 256);
   ledcWriteTone(spkChannel, 0);
-  CLEAR_PERI_REG_MASK(RTC_IO_PAD_DAC1_REG, RTC_IO_PDAC1_XPD_DAC | RTC_IO_PDAC1_DAC_XPD_FORCE);
+  //CLEAR_PERI_REG_MASK(RTC_IO_PAD_DAC1_REG, RTC_IO_PDAC1_XPD_DAC | RTC_IO_PDAC1_DAC_XPD_FORCE);
   digitalWrite(M5_LED, HIGH);
   yield();
 
