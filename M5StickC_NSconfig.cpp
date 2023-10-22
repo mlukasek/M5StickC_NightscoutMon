@@ -3,16 +3,16 @@
 // here write YOUR NIGHTSCOUT configuration data (do not edit M5StickC_NSconfig.h file)
 
 void readConfiguration(tConfig *cfg) {
-  strlcpy(cfg->url, "username.herokuapp.com", 64); // Nightscout URL
+  strlcpy(cfg->url, "martin140569.ns.10be.de", 64); // Nightscout URL
   strlcpy(cfg->token, "", 32); // security token
   cfg->bootPic[0]=0;
   strcpy(cfg->userName, "User");
   cfg->timeZone = 3600; // time zone shift in second (1 hour = 3600 seconds)
   cfg->dst = 3600; // daylight shift in seconds
-  cfg->show_mgdl = 0; // 0 for mmol/L, 1 for mg/dL
+  cfg->show_mgdl = 1; // 0 for mmol/L, 1 for mg/dL
   cfg->sgv_only = 0; // 1 = filter only SGV values
   cfg->show_current_time = 0; // not used currently
-  cfg->show_COB_IOB = 1; // show COB and IOB
+  cfg->show_COB_IOB = 0; // show COB and IOB
   cfg->snooze_timeout = 30; // not used currently
   cfg->alarm_repeat = 5; // not used currently
   cfg->power_on_wifi_delay = 0; // delay between power on and searching for WiFi SSID
@@ -34,8 +34,8 @@ void readConfiguration(tConfig *cfg) {
   cfg->brightness2 = 15; // the second level of display brightness (0-15, but reasonable values are 7-15)
   cfg->brightness3 = 8; // the third level of display brightness (0-15, but reasonable values are 7-15)
   cfg->display_rotation = 3;
-  strlcpy(cfg->wlan1ssid, "wlan1ssid",32);
-  strlcpy(cfg->wlan1pass, "wlan1pass", 63);
+  strlcpy(cfg->wlan1ssid, "FritzBox 6490 Cabel Kratz",32);
+  strlcpy(cfg->wlan1pass, "avalon1969", 63);
   strlcpy(cfg->wlan2ssid, "wlan2ssid", 32);
   strlcpy(cfg->wlan2pass, "wlan2pass", 63);
   strlcpy(cfg->wlan3ssid, "wlan3ssid", 32);
