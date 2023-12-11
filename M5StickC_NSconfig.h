@@ -7,13 +7,13 @@
 // in case that filling data somehow fails
 
 struct tConfig {
-  char url[64];
-  char token[32];
+  char url[128];
+  char token[64];
   char bootPic[64];
   char userName[32];
   int timeZone = 3600; // time zone offset in hours, must be corrected for internatinal use and DST
   int dst = 3600; // DST time offset in hours, must be corrected for internatinal use and DST
-  int show_mgdl = 0; // 1 = display mg/DL, 0 = diplay mmol/L
+  int show_mgdl = 1; // 1 = display mg/DL, 0 = diplay mmol/L
   int sgv_only = 0; // 1 = filter only SGV values from Nightscout, 0 = read everything (default)  
   int show_current_time = 0;
   int show_COB_IOB = 0;
