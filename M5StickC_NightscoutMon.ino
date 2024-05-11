@@ -1,5 +1,5 @@
 /*  M5StickC Nightscout monitor
-    Copyright (C) 2018, 2019 Martin Lukasek <martin@lukasek.cz>
+    Copyright (C) 2018-2024 Martin Lukasek <martin@lukasek.cz>
     
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,8 +21,9 @@
 */
 
 // comment out one of the following lines according to your device
-//#include <M5StickC.h>
-#include <M5StickCPlus.h>
+#include <M5StickC.h>
+// #include <M5StickCPlus.h>
+// #include <M5StickCPlus2.h>
 
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -31,6 +32,17 @@
 #define ARDUINOJSON_USE_LONG_LONG 1
 #include <ArduinoJson.h>
 #include "M5StickC_NSconfig.h"
+
+#ifdef _M5_STICKC_PLUS2_H_
+    #define M5_LED  GPIO_NUM_19
+    #define M5_BUTTON_HOME GPIO_NUM_37
+    #define M5_BUTTON_RST GPIO_NUM_39
+    #define LED_ON  HIGH
+    #define LED_OFF LOW
+#else
+    #define LED_ON  LOW
+    #define LED_OFF HIGH
+#endif
 
 const int SPK_pin = 26;
 int spkChannel = 0;
@@ -65,7 +77,11 @@ char delta_display[32];
 
 void startupLogo() {
     // static uint8_t brightness, pre_brightness;
+#ifdef _M5_STICKC_PLUS2_H_
+    M5.Lcd.setBrightness(0);
+#else
     M5.Axp.ScreenBreath(0);
+#endif
     if(cfg.bootPic[0]==0) {
       // M5.Lcd.pushImage(0, 0, 160, 80, (uint16_t *)gImage_logoM5);
       Serial.print("height = "); Serial.println(M5.Lcd.height());
@@ -85,9 +101,13 @@ void startupLogo() {
           delay(2000);
         } */
         //M5.Lcd.setTextSize(1);
+#ifdef _M5_STICKC_PLUS2_H_
+        M5.Lcd.drawCentreString("M5StickC PLUS2", 118, 20, 4);
+#else
         M5.Lcd.drawCentreString("M5StickC PLUS", 118, 20, 4);
+#endif
         M5.Lcd.drawCentreString("Nightscout monitor", 118, 50, 4);
-        M5.Lcd.drawCentreString("(c) 2019-2020 Martin Lukasek", 118, 100, 2);
+        M5.Lcd.drawCentreString("(c) 2019-2024 Martin Lukasek", 118, 100, 2);
       } else {
         M5.Lcd.drawString("M5StickC", 55, 10, 2);
         M5.Lcd.drawString("Nightscout monitor", 25, 22, 2);
@@ -101,7 +121,11 @@ void startupLogo() {
 
     // char tmpstr[32];
     for(int i=0; i<=15; i++) {
+#ifdef _M5_STICKC_PLUS2_H_
+      M5.Lcd.setBrightness(i*16);
+#else
       M5.Axp.ScreenBreath(i);
+#endif
       // sprintf(tmpstr, "%d", i);
       // M5.Lcd.fillRect(0, 0, 30, 20, TFT_BLACK);
       // M5.Lcd.drawString(tmpstr, 0, 0, GFXFF);
@@ -127,18 +151,21 @@ void sndAlarm() {
   for(int j=0; j<6; j++) {
     if( cfg.dev_mode ) {
       // play_tone(660, 400, 1);
-      digitalWrite(M5_LED, LOW);  
+      digitalWrite(M5_LED, LED_ON);  
       ledcWriteTone(spkChannel, 660);
       delay(1);
-      digitalWrite(M5_LED, HIGH);  
+      digitalWrite(M5_LED, LED_OFF);  
       ledcWriteTone(spkChannel, 0);
     } else {
       // play_tone(660, 400, cfg.alarm_volume);
-      digitalWrite(M5_LED, LOW);  
+      digitalWrite(M5_LED, LED_ON);  
+#ifdef _M5_STICKC_PLUS2_H_
+      M5.Speaker.tone(3000, 400);
+#endif
       ledcWriteTone(spkChannel, 660);
       delay(400);
-      digitalWrite(M5_LED, HIGH);  
       ledcWriteTone(spkChannel, 0);
+      digitalWrite(M5_LED, LED_OFF);  
     }
     delay(200);
   }
@@ -149,18 +176,24 @@ void sndWarning() {
   for(int j=0; j<3; j++) {
     if( cfg.dev_mode ) {
       // play_tone(3000, 100, 1);
-      digitalWrite(M5_LED, LOW);  
+      digitalWrite(M5_LED, LED_ON);  
       ledcWriteTone(spkChannel, 3000);
+#ifdef _M5_STICKC_PLUS2_H_
+      M5.Speaker.tone(8000, 20);
+#endif
       delay(1);
-      digitalWrite(M5_LED, HIGH);  
+      digitalWrite(M5_LED, LED_OFF);  
       ledcWriteTone(spkChannel, 0);
     } else {
       // play_tone(3000, 100, cfg.warning_volume);
-      digitalWrite(M5_LED, LOW);  
+      digitalWrite(M5_LED, LED_ON);  
+#ifdef _M5_STICKC_PLUS2_H_
+      M5.Speaker.tone(3000, 100);
+#endif
       ledcWriteTone(spkChannel, 3000);
       delay(100);
-      digitalWrite(M5_LED, HIGH);  
       ledcWriteTone(spkChannel, 0);
+      digitalWrite(M5_LED, LED_OFF);  
     }
     delay(300);
   }
@@ -182,13 +215,17 @@ void buttons_test() {
       else
         lcdBrightness = cfg.brightness1;
     Serial.print(" to "); Serial.println(lcdBrightness);
+#ifdef _M5_STICKC_PLUS2_H_
+    M5.Lcd.setBrightness(lcdBrightness*15);
+#else
     M5.Axp.ScreenBreath(lcdBrightness);
-    while(digitalRead(M5_BUTTON_HOME) == LOW); // wait for release
+#endif
+  while(digitalRead(M5_BUTTON_HOME) == LOW); // wait for release
   }
   if(digitalRead(M5_BUTTON_RST) == LOW) {
-    digitalWrite(M5_LED, LOW);
+    digitalWrite(M5_LED, LED_ON);
     delay(500);
-    digitalWrite(M5_LED, HIGH);
+    digitalWrite(M5_LED, LED_OFF);
     while(digitalRead(M5_BUTTON_RST) == LOW); // wait for release
   }
 }
@@ -243,8 +280,12 @@ void setup() {
   pinMode(M5_BUTTON_RST, INPUT);
   pinMode(M5_LED, OUTPUT);
   led_alert = 0;
-  digitalWrite(M5_LED, HIGH);
-  M5.Axp.ScreenBreath(0);
+  digitalWrite(M5_LED, LED_OFF);
+#ifdef _M5_STICKC_PLUS2_H_
+    M5.Lcd.setBrightness(0);
+#else
+    M5.Axp.ScreenBreath(0);
+#endif
   
   readConfiguration(&cfg);
   // cfg.snd_warning = 6.5;
@@ -271,7 +312,7 @@ void setup() {
   ledcWrite(spkChannel, 256);
   ledcWriteTone(spkChannel, 0);
   //CLEAR_PERI_REG_MASK(RTC_IO_PAD_DAC1_REG, RTC_IO_PDAC1_XPD_DAC | RTC_IO_PDAC1_DAC_XPD_FORCE);
-  digitalWrite(M5_LED, HIGH);
+  digitalWrite(M5_LED, LED_OFF);
   yield();
 
   startupLogo();
@@ -289,12 +330,20 @@ void setup() {
   */
 
   lcdBrightness = cfg.brightness1;
-  M5.Axp.ScreenBreath(lcdBrightness);
+#ifdef _M5_STICKC_PLUS2_H_
+    M5.Lcd.setBrightness(lcdBrightness*15);
+#else
+    M5.Axp.ScreenBreath(lcdBrightness);
+#endif
   delay(cfg.power_on_wifi_delay*1000);
   wifi_connect();
   yield();
 
-  M5.Axp.ScreenBreath(lcdBrightness);
+#ifdef _M5_STICKC_PLUS2_H_
+    M5.Lcd.setBrightness(lcdBrightness*15);
+#else
+    M5.Axp.ScreenBreath(lcdBrightness);
+#endif
   M5.Lcd.fillScreen(TFT_BLACK);
 
   // test file with time stamps
@@ -347,7 +396,7 @@ void update_glycemia() {
   
   // if LED alert then light LED always during Nightscout query
   if(led_alert)
-    digitalWrite(M5_LED, LOW);  
+    digitalWrite(M5_LED, LED_ON);  
  
   M5.Lcd.setTextSize(1);
   M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
@@ -497,7 +546,11 @@ void update_glycemia() {
               M5.Lcd.fillRect(180, 0, 60, 24, TFT_BLACK);
               M5.Lcd.setTextSize(1);
               M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+#ifdef _M5_STICKC_PLUS2_H_
+              M5.Lcd.drawRightString(delta_display, 237, 2, 4);
+#else
               M5.Lcd.drawString(delta_display, 237-M5.Lcd.textWidth(delta_display, 4), 2, 4);
+#endif
             } else {
               M5.Lcd.fillRect(80, 0, 64, 17, TFT_BLACK);
               M5.Lcd.setTextSize(1);
@@ -641,7 +694,11 @@ void update_glycemia() {
                     M5.Lcd.fillRect(180, 0, 60, 24, TFT_BLACK);
                     M5.Lcd.setTextSize(1);
                     M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+#ifdef _M5_STICKC_PLUS2_H_
+                    M5.Lcd.drawRightString(delta_display, 237, 2, 4);
+#else
                     M5.Lcd.drawString(delta_display, 237-M5.Lcd.textWidth(delta_display, 4), 2, 4);
+#endif
                   } else {
                     M5.Lcd.fillRect(80, 0, 64, 17, TFT_BLACK);
                     M5.Lcd.setTextSize(1);
@@ -700,12 +757,17 @@ void update_glycemia() {
             sprintf(tmpstr, "%d min", sensorDifMin);
           }
           if(M5.Lcd.width()>160) { // PLUS version has bigger display
-            M5.Lcd.fillRoundRect(0, 0, 120, 24, 5, tdColor);
+            M5.Lcd.fillRoundRect(0, 0, 120, 25, 5, tdColor);
             M5.Lcd.setTextSize(1);
             // strcpy(tmpstr, "89 min");
             // M5.Lcd.setTextDatum(MC_DATUM);
             M5.Lcd.setTextColor(TFT_BLACK, tdColor);
+#ifdef _M5_STICKC_PLUS2_H_
+            //M5.Lcd.drawString(tmpstr, 20, 2, 4);
+            M5.Lcd.drawCentreString(tmpstr, 60, 2, 4);
+#else
             M5.Lcd.drawString(tmpstr, 60-M5.Lcd.textWidth(tmpstr, 4)/2, 1, 4);
+#endif
           } else {
             M5.Lcd.fillRoundRect(16, 0, 64, 16, 5, tdColor);
             M5.Lcd.setTextSize(1);
@@ -1009,7 +1071,7 @@ void loop(){
         msCountAlert = millis();
       }
     } else {
-      digitalWrite(M5_LED, HIGH);
+      digitalWrite(M5_LED, LED_OFF);
       // ledcWriteTone(spkChannel, 0);
     }
   }
